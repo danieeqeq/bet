@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Apuestas</title>
+
+<style>
+:root {
+    --bg:#121212;
+    --card:#1e1e1e;
+    --text:#ffffff;
+    --green:#00d68f;
+    --red:#ff5c5c;
+    --soft:#2a2a2a;
+}
+
+.light {
+    --bg:#f4f4f4;
+    --card:#ffffff;
+    --text:#000;
+    --soft:#ddd;
+}
+
+body {
+    margin:0;
+    font-family: system-ui;
+    background:var(--bg);
+    color:var(--text);
+}
+
+.hidden { display:none; }
+
+.header {
+    padding:15px;
+    text-align:center;
+    background:var(--card);
+    font-weight:bold;
+}
+
+.menu {
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+    padding:15px;
+}
+
+.card {
+    background:var(--card);
+    padding:12px;
+    border-radius:14px;
+    text-align:center;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.card:hover { transform:scale(1.05); }
+
+.container { padding:15px; }
+
+input, button {
+    width:100%;
+    padding:10px;
+    border-radius:10px;
+    border:none;
+    margin-top:8px;
+}
+
+input { background:var(--soft); color:var(--text); }
+
+button { background:var(--green); font-weight:bold; }
+
+.warn { background:var(--red); }
+
+/* PARTIDOS */
+.partido {
+    display:flex;
+    gap:6px;
+    background:var(--soft);
+    padding:8px;
+    border-radius:10px;
+    margin-bottom:6px;
+}
+
+.remove {
+    width:35px;
+    background:#333;
+    color:white;
+}
+
+/* BALANCE */
+.apuesta {
+    background:var(--card);
+    padding:12px;
+    border-radius:12px;
+    margin-bottom:10px;
+}
+
+.detalle {
+    overflow:hidden;
+    max-height:0;
+    transition:max-height .4s ease;
+    font-size:13px;
+}
+
+.detalle.show { max-height:300px; }
+
+/* GRAFICOS */
+.grafico {
+    height:220px;
+    background:var(--card);
+    border-radius:14px;
+    padding:15px;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-around;
+}
+
+.bar {
+    width:40%;
+    border-radius:12px 12px 0 0;
+    position:relative;
+    transition:.6s;
+}
+
+.bar span {
+    position:absolute;
+    top:-26px;
+    width:100%;
+    text-align:center;
+}
+
+.green { background:linear-gradient(#00ffb2,#00c781); }
+.red { background:linear-gradient(#ff8b8b,#d63031); }
+
+.meses {
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+    margin-top:10px;
+}
+
+.mes {
+    padding:6px 10px;
+    background:var(--soft);
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.resumen-box {
+    background:var(--card);
+    margin-top:15px;
+    padding:15px;
+    border-radius:12px;
+}
+
+/* TOAST */
+.toast {
+    position: fixed;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #00c781;
+    color: #000;
+    padding: 14px 22px;
+    border-radius: 14px;
+    font-weight: bold;
+    opacity: 0;
+    transition: .4s ease;
+    z-index: 999;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+</style>
+</head>
+
+<body>
+
+<div class="header" id="titulo">📊 Panel de Apuestas</div>
+
+<div class="menu">
+    <div class="card" onclick="show('apuestas')">🎯<br>Apuestas</div>
+    <div class="card" onclick="show('balance')">💰<br>Balance</div>
+    <div class="card" onclick="show('graficos')">📊<br>Gráficos</div>
+    <div class="card" onclick="show('ajustes')">⚙️<br>Ajustes</div>
+</div>
+
+<!-- APUESTAS -->
+<div class="container hidden" id="apuestas">
+    <h3>Nueva apuesta</h3>
+
+    <div id="partidos">
+        <div class="partido">
+            <input placeholder="Ej: Barcelona vs Madrid">
+            <button class="remove" onclick="this.parentElement.remove()">✖</button>
+        </div>
+    </div>
+
+    <button onclick="addPartido()">➕ Agregar partido</button>
+
+    <input id="cuota" type="number" placeholder="Cuota total">
+    <input id="monto" type="number" placeholder="Monto apostado">
+
+    <button onclick="calcular()">Calcular</button>
+    <p id="resultado"></p>
+
+<button type="button" onclick="guardar(true); return false;">✅ Gané</button>
+<button type="button" class="warn" onclick="guardar(false); return false;">❌ Perdí</button>
+</div>
+
+<div class="container hidden" id="balance"></div>
+
+<div class="container hidden" id="graficos">
+    <div class="grafico">
+        <div class="bar green" id="barG"><span>Ganancias</span></div>
+        <div class="bar red" id="barP"><span>Pérdidas</span></div>
+    </div>
+
+    <button onclick="mostrarResumen()">📅 Resumen mensual</button>
+    <div id="resumenMensual" class="resumen-box hidden"></div>
+    <div class="meses" id="meses"></div>
+</div>
+
+<div class="container hidden" id="ajustes">
+    <button onclick="toggleTheme()">🌗 Modo claro / oscuro</button>
+    <button class="warn" onclick="resetAll()">🗑 Borrar todo</button>
+</div>
+
+<div id="toast" class="toast">✅ Apuesta guardada</div>
+
+<script>
+let apuestas = JSON.parse(localStorage.getItem("apuestas")) || [];
+let mesSeleccionado = new Date().getMonth();
+
+function show(id){
+    document.querySelectorAll(".container").forEach(c=>c.classList.add("hidden"));
+    document.getElementById(id).classList.remove("hidden");
+    document.getElementById("titulo").innerText = id.toUpperCase();
+    if(id==="balance") renderBalance();
+    if(id==="graficos") renderGraficos();
+}
+
+function addPartido(){
+    const d=document.createElement("div");
+    d.className="partido";
+    d.innerHTML=`<input placeholder="Otro partido">
+    <button class="remove" onclick="this.parentElement.remove()">✖</button>`;
+    document.getElementById("partidos").appendChild(d);
+}
+
+function calcular(){
+    const c = +document.getElementById("cuota").value;
+    const m = +document.getElementById("monto").value;
+
+    if(!c || !m) return;
+
+    document.getElementById("resultado").innerText =
+        "Retorno: S/ " + (c * m).toFixed(2);
+}
+
+function guardar(gano){
+    const partidos=[...document.querySelectorAll("#partidos input")]
+        .map(p=>p.value).filter(Boolean);
+
+    const cuota = +document.getElementById("cuota").value;
+    const monto = +document.getElementById("monto").value;
+
+    if(!partidos.length || !cuota || !monto){
+        alert("Completa todos los datos");
+        return;
+    }
+
+    apuestas.push({
+        fecha:new Date().toISOString(),
+        partidos,
+        cuota,
+        monto,
+        retorno:monto*cuota,
+        ganancia:gano ? (monto*cuota)-monto : -monto
+    });
+
+    localStorage.setItem("apuestas", JSON.stringify(apuestas));
+    resetForm();
+
+    const toast=document.getElementById("toast");
+    toast.textContent = gano ? "✅ Apuesta ganada" : "❌ Apuesta perdida";
+    toast.style.background = gano ? "#00c781" : "#ff5c5c";
+
+    toast.classList.add("show");
+    setTimeout(()=>toast.classList.remove("show"),2000);
+}
+
+function resetForm(){
+    document.getElementById("partidos").innerHTML = `
+        <div class="partido">
+            <input placeholder="Ej: Barcelona vs Madrid">
+            <button class="remove" onclick="this.parentElement.remove()">✖</button>
+        </div>`;
+
+    document.getElementById("cuota").value = "";
+    document.getElementById("monto").value = "";
+    document.getElementById("resultado").innerText = "";
+}
+
+
+function renderBalance(){
+    const c=document.getElementById("balance");
+    c.innerHTML="";
+    let total=0;
+
+    apuestas.forEach((a,i)=>{
+        total+=a.ganancia;
+        const div=document.createElement("div");
+        div.className="apuesta";
+        div.innerHTML=`
+        <b>${a.ganancia>0?"✅ Ganada":"❌ Perdida"} — S/ ${a.ganancia.toFixed(2)}</b>
+        <div style="font-size:12px;color:#aaa;cursor:pointer" onclick="toggleDetalle(${i})">Ver detalle</div>
+        <div class="detalle" id="detalle-${i}">
+            📅 ${new Date(a.fecha).toLocaleDateString()}<br>
+            🎯 ${a.partidos.join(" | ")}<br>
+            💵 Apostado: S/ ${a.monto}<br>
+            📊 Cuota: ${a.cuota}<br>
+            💰 Retorno de la casa: S/ ${a.retorno.toFixed(2)}
+        </div>`;
+        c.appendChild(div);
+    });
+
+    c.prepend(document.createElement("hr"));
+    c.prepend(Object.assign(document.createElement("b"),{innerText:`Balance total: S/ ${total.toFixed(2)}`}));
+}
+
+function toggleDetalle(i){
+    document.getElementById("detalle-"+i).classList.toggle("show");
+}
+
+function renderGraficos(){
+    let g=0,p=0;
+    apuestas.forEach(a=>a.ganancia>0?g+=a.ganancia:p+=Math.abs(a.ganancia));
+    const max=Math.max(g,p,1);
+    barG.style.height=(g/max*100)+"%";
+    barP.style.height=(p/max*100)+"%";
+
+    const meses=document.getElementById("meses");
+    meses.innerHTML="";
+    for(let i=0;i<12;i++){
+        const m=document.createElement("div");
+        m.className="mes";
+        m.innerText=new Date(2024,i).toLocaleString("es",{month:"short"});
+        m.onclick=()=>{mesSeleccionado=i;mostrarResumen()};
+        meses.appendChild(m);
+    }
+}
+
+function mostrarResumen(){
+    const box = document.getElementById("resumenMensual");
+    const mes = apuestas.filter(a => new Date(a.fecha).getMonth() === mesSeleccionado);
+
+    if (!mes.length) {
+        box.innerHTML = "📭 Sin datos";
+        box.classList.remove("hidden");
+        return;
+    }
+
+    let totalApostado = 0;
+    let ganancias = 0;
+    let perdidas = 0;
+    let ganadas = 0;
+    let perdidasCount = 0;
+
+    mes.forEach(x => {
+        totalApostado += x.monto;
+
+        if (x.ganancia > 0) {
+            ganancias += x.ganancia;
+            ganadas++;
+        } else {
+            perdidas += Math.abs(x.ganancia);
+            perdidasCount++;
+        }
+    });
+
+    box.innerHTML = `
+        📊 <b>Resumen mensual</b><br><br>
+
+        💵 Apostado: S/ ${totalApostado}<br>
+        📈 Ganancias: S/ ${ganancias}<br>
+        📉 Pérdidas: S/ ${perdidas}<br>
+        🟢 Ganancia Mensual: S/ ${(ganancias - perdidas).toFixed(2)}<br><br>
+
+        ✅ Apuestas ganadas: ${ganadas}<br>
+        ❌ Apuestas perdidas: ${perdidasCount}
+    `;
+
+    box.classList.remove("hidden");
+}
+
+
+
+function toggleTheme(){ document.body.classList.toggle("light"); }
+
+function resetAll(){
+    if(confirm("¿Seguro que deseas borrar todo?")){
+        localStorage.clear();
+        location.reload();
+    }
+}
+</script>
+
+</body>
+</html>
