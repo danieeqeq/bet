@@ -1,11 +1,10 @@
 {
   "name": "Mi Control de Apuestas",
   "short_name": "Apuestas",
-  "start_url": ".",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#121212",
-  "theme_color": "#00c853",
-  "orientation": "portrait",
+  "theme_color": "#00d68f",
   "icons": [
     {
       "src": "icon-192.png",
