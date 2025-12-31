@@ -351,25 +351,38 @@ function mostrarResumen(){
         return;
     }
 
-    let apostado=0, gan=0, per=0, win=0, lose=0;
+  let apostado = 0;
+let gan = 0;
+let per = 0;
+let win = 0;
+let lose = 0;
+let retornoTotal = 0;
 
-    mes.forEach(x=>{
-        apostado+=x.monto;
-        if(x.ganancia>0){gan+=x.ganancia; win++;}
-        else {per+=Math.abs(x.ganancia); lose++;}
-    });
+mes.forEach(x => {
+    apostado += x.monto;
 
-    box.innerHTML=`
-    📊 <b>Resumen mensual</b><br><br>
-    💵 Apostado: S/ ${apostado}<br>
-    📈 Ganancias: S/ ${gan}<br>
-    📉 Pérdidas: S/ ${per}<br>
-    🟢 Balance: S/ ${(gan-per).toFixed(2)}<br><br>
-    ✅ Ganadas: ${win}<br>
-    ❌ Perdidas: ${lose}
-    `;
-    box.classList.remove("hidden");
-}
+    if (x.ganancia > 0) {
+        gan += x.ganancia;
+        retornoTotal += x.monto + x.ganancia;
+        win++;
+    } else {
+        per += Math.abs(x.ganancia);
+        lose++;
+    }
+});
+box.innerHTML = `
+📊 <b>Resumen mensual</b><br><br>
+
+💵 Apostado: S/ ${apostado}<br>
+📈 Ganancias: S/ ${gan}<br>
+📉 Pérdidas: S/ ${per}<br>
+🟢 Ganancia bruta: S/ ${(gan - per).toFixed(2)}<br>
+💰 Retorno total: S/ ${retornoTotal.toFixed(2)}<br><br>
+
+✅ Apuestas ganadas: ${win}<br>
+❌ Apuestas perdidas: ${lose}
+`;
+
 
 function toggleTheme(){ document.body.classList.toggle("light"); }
 
@@ -391,3 +404,4 @@ if ("serviceWorker" in navigator) {
 
 </body>
 </html>
+
