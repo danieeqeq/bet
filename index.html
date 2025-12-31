@@ -2,9 +2,12 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
- <title>Mi App de Apuestas</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#00c853">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Mi App de Apuestas</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#00c853">
 
 <style>
 :root {
@@ -68,9 +71,7 @@ input, button {
 }
 
 input { background:var(--soft); color:var(--text); }
-
 button { background:var(--green); font-weight:bold; }
-
 .warn { background:var(--red); }
 
 /* PARTIDOS */
@@ -104,7 +105,7 @@ button { background:var(--green); font-weight:bold; }
     font-size:13px;
 }
 
-.detalle.show { max-height:300px; }
+.detalle.show { max-height:400px; }
 
 /* GRAFICOS */
 .grafico {
@@ -208,8 +209,8 @@ button { background:var(--green); font-weight:bold; }
     <button onclick="calcular()">Calcular</button>
     <p id="resultado"></p>
 
-<button type="button" onclick="guardar(true); return false;">✅ Gané</button>
-<button type="button" class="warn" onclick="guardar(false); return false;">❌ Perdí</button>
+    <button onclick="guardar(true)">✅ Gané</button>
+    <button class="warn" onclick="guardar(false)">❌ Perdí</button>
 </div>
 
 <div class="container hidden" id="balance"></div>
@@ -230,7 +231,7 @@ button { background:var(--green); font-weight:bold; }
     <button class="warn" onclick="resetAll()">🗑 Borrar todo</button>
 </div>
 
-<div id="toast" class="toast">✅ Apuesta guardada</div>
+<div id="toast" class="toast">✔ Guardado</div>
 
 <script>
 let apuestas = JSON.parse(localStorage.getItem("apuestas")) || [];
@@ -253,59 +254,45 @@ function addPartido(){
 }
 
 function calcular(){
-    const c = +document.getElementById("cuota").value;
-    const m = +document.getElementById("monto").value;
-
-    if(!c || !m) return;
-
-    document.getElementById("resultado").innerText =
-        "Retorno: S/ " + (c * m).toFixed(2);
+    const c=+cuota.value;
+    const m=+monto.value;
+    if(!c||!m) return;
+    resultado.innerText="Retorno: S/ "+(c*m).toFixed(2);
 }
 
 function guardar(gano){
-    const partidos=[...document.querySelectorAll("#partidos input")]
-        .map(p=>p.value).filter(Boolean);
-
-    const cuota = +document.getElementById("cuota").value;
-    const monto = +document.getElementById("monto").value;
-
-    if(!partidos.length || !cuota || !monto){
-        alert("Completa todos los datos");
-        return;
-    }
+    const partidos=[...document.querySelectorAll("#partidos input")].map(p=>p.value).filter(Boolean);
+    if(!partidos.length || !cuota.value || !monto.value) return alert("Completa todo");
 
     apuestas.push({
         fecha:new Date().toISOString(),
         partidos,
-        cuota,
-        monto,
-        retorno:monto*cuota,
-        ganancia:gano ? (monto*cuota)-monto : -monto
+        cuota:+cuota.value,
+        monto:+monto.value,
+        retorno:cuota.value*monto.value,
+        ganancia: gano ? (cuota.value*monto.value)-monto.value : -monto.value
     });
 
-    localStorage.setItem("apuestas", JSON.stringify(apuestas));
+    localStorage.setItem("apuestas",JSON.stringify(apuestas));
     resetForm();
 
-    const toast=document.getElementById("toast");
-    toast.textContent = gano ? "✅ Apuesta ganada" : "❌ Apuesta perdida";
-    toast.style.background = gano ? "#00c781" : "#ff5c5c";
-
-    toast.classList.add("show");
-    setTimeout(()=>toast.classList.remove("show"),2000);
+    const t=document.getElementById("toast");
+    t.textContent = gano ? "✅ Apuesta guardada" : "❌ Apuesta perdida";
+    t.style.background = gano ? "#00c781" : "#ff5c5c";
+    t.classList.add("show");
+    setTimeout(()=>t.classList.remove("show"),2000);
 }
 
 function resetForm(){
-    document.getElementById("partidos").innerHTML = `
-        <div class="partido">
-            <input placeholder="Ej: Barcelona vs Madrid">
-            <button class="remove" onclick="this.parentElement.remove()">✖</button>
-        </div>`;
-
-    document.getElementById("cuota").value = "";
-    document.getElementById("monto").value = "";
-    document.getElementById("resultado").innerText = "";
+    document.getElementById("partidos").innerHTML=`
+    <div class="partido">
+        <input placeholder="Ej: Barcelona vs Madrid">
+        <button class="remove" onclick="this.parentElement.remove()">✖</button>
+    </div>`;
+    cuota.value="";
+    monto.value="";
+    resultado.innerText="";
 }
-
 
 function renderBalance(){
     const c=document.getElementById("balance");
@@ -314,22 +301,21 @@ function renderBalance(){
 
     apuestas.forEach((a,i)=>{
         total+=a.ganancia;
-        const div=document.createElement("div");
-        div.className="apuesta";
-        div.innerHTML=`
+        const d=document.createElement("div");
+        d.className="apuesta";
+        d.innerHTML=`
         <b>${a.ganancia>0?"✅ Ganada":"❌ Perdida"} — S/ ${a.ganancia.toFixed(2)}</b>
-        <div style="font-size:12px;color:#aaa;cursor:pointer" onclick="toggleDetalle(${i})">Ver detalle</div>
+        <div style="font-size:12px;cursor:pointer" onclick="toggleDetalle(${i})">Ver detalle</div>
         <div class="detalle" id="detalle-${i}">
             📅 ${new Date(a.fecha).toLocaleDateString()}<br>
             🎯 ${a.partidos.join(" | ")}<br>
             💵 Apostado: S/ ${a.monto}<br>
             📊 Cuota: ${a.cuota}<br>
-            💰 Retorno de la casa: S/ ${a.retorno.toFixed(2)}
+            💰 Retorno: S/ ${a.retorno.toFixed(2)}
         </div>`;
-        c.appendChild(div);
+        c.appendChild(d);
     });
 
-    c.prepend(document.createElement("hr"));
     c.prepend(Object.assign(document.createElement("b"),{innerText:`Balance total: S/ ${total.toFixed(2)}`}));
 }
 
@@ -356,49 +342,34 @@ function renderGraficos(){
 }
 
 function mostrarResumen(){
-    const box = document.getElementById("resumenMensual");
-    const mes = apuestas.filter(a => new Date(a.fecha).getMonth() === mesSeleccionado);
+    const box=document.getElementById("resumenMensual");
+    const mes=apuestas.filter(a=>new Date(a.fecha).getMonth()===mesSeleccionado);
 
-    if (!mes.length) {
-        box.innerHTML = "📭 Sin datos";
+    if(!mes.length){
+        box.innerHTML="📭 Sin datos";
         box.classList.remove("hidden");
         return;
     }
 
-    let totalApostado = 0;
-    let ganancias = 0;
-    let perdidas = 0;
-    let ganadas = 0;
-    let perdidasCount = 0;
+    let apostado=0, gan=0, per=0, win=0, lose=0;
 
-    mes.forEach(x => {
-        totalApostado += x.monto;
-
-        if (x.ganancia > 0) {
-            ganancias += x.ganancia;
-            ganadas++;
-        } else {
-            perdidas += Math.abs(x.ganancia);
-            perdidasCount++;
-        }
+    mes.forEach(x=>{
+        apostado+=x.monto;
+        if(x.ganancia>0){gan+=x.ganancia; win++;}
+        else {per+=Math.abs(x.ganancia); lose++;}
     });
 
-    box.innerHTML = `
-        📊 <b>Resumen mensual</b><br><br>
-
-        💵 Apostado: S/ ${totalApostado}<br>
-        📈 Ganancias: S/ ${ganancias}<br>
-        📉 Pérdidas: S/ ${perdidas}<br>
-        🟢 Ganancia Mensual: S/ ${(ganancias - perdidas).toFixed(2)}<br><br>
-
-        ✅ Apuestas ganadas: ${ganadas}<br>
-        ❌ Apuestas perdidas: ${perdidasCount}
+    box.innerHTML=`
+    📊 <b>Resumen mensual</b><br><br>
+    💵 Apostado: S/ ${apostado}<br>
+    📈 Ganancias: S/ ${gan}<br>
+    📉 Pérdidas: S/ ${per}<br>
+    🟢 Balance: S/ ${(gan-per).toFixed(2)}<br><br>
+    ✅ Ganadas: ${win}<br>
+    ❌ Perdidas: ${lose}
     `;
-
     box.classList.remove("hidden");
 }
-
-
 
 function toggleTheme(){ document.body.classList.toggle("light"); }
 
@@ -408,20 +379,15 @@ function resetAll(){
         location.reload();
     }
 }
+</script>
 
- <script>
+<script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("service-worker.js")
-      .then(() => console.log("Service Worker registrado"))
-      .catch(err => console.log("SW error:", err));
+    navigator.serviceWorker.register("service-worker.js");
   });
 }
 </script>
 
-</script>
-
 </body>
 </html>
-
-
